@@ -82,7 +82,15 @@ app.post('/opay/create', async (req, res) => {
       body: jsonStr,
     });
 
-    const data = await resp.json();
+    const text = await resp.text();
+    console.log('OPay response status:', resp.status);
+    console.log('OPay response body:', text);
+    let data = {};
+    try {
+      data = JSON.parse(text);
+    } catch (_) {
+      return res.status(resp.status).json({ error: 'Non-JSON response', body: text });
+    }
     return res.status(resp.status).json(data);
   } catch (err) {
     console.error(err);
@@ -101,6 +109,16 @@ app.post('/opay/webhook', (req, res) => {
 app.get('/opay/status/:reference', (req, res) => {
   // TODO: look up status in your DB; returning stub
   res.json({ reference: req.params.reference, status: 'PENDING' });
+});
+
+// Lightweight env check (does not expose secrets)
+app.get('/opay/env-check', (_req, res) => {
+  res.json({
+    opayBaseUrl: OPAY_BASE_URL,
+    merchantIdSet: Boolean(OPAY_MERCHANT_ID),
+    secretKeyLength: OPAY_SECRET_KEY ? OPAY_SECRET_KEY.length : 0,
+    callbackUrl: CALLBACK_URL,
+  });
 });
 
 app.listen(PORT, () => {
